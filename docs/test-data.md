@@ -10,7 +10,7 @@ shared external suite and they are not a product schema.
 | `testdata/jsonl/` | JSON Lines samples |
 | `testdata/pointer/` | RFC 6901 examples |
 | `testdata/patch/` | RFC 6902 / 7396 examples |
-| `testdata/suite/` | Time-boxed JSONTestSuite `y_` / `n_` cases |
+| `testdata/suite/` | Small local accepted (`y_`) and rejected (`n_`) documents |
 
 ## Schemas
 
@@ -24,7 +24,7 @@ shared external suite and they are not a product schema.
 ## Golden vectors
 
 Atom and object goldens come from Python `json` via `scripts/gen_golden.py`.
-Do not hand-edit files that the script owns.
+Do not hand-edit `.json` files that the script owns.
 
 ## Derived files
 

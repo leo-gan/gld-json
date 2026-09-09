@@ -34,15 +34,6 @@ pixi run test
 If `pixi install` fails with 401 on `conda.modular.com`, set `PREFIX_API_KEY`
 in a local `.env` (never commit that file) and run `scripts/ci-setup.sh`.
 
-## Generate Mojo from JSON Schema
-
-```bash
-pixi run mojo run -I src src/codegen/cli.mojo -- \
-  --schema testdata/schema/benchmark_v2.json --out tests/generated
-```
-
-`pixi run generate` rebuilds the in-tree types.
-
 ## License
 
 MIT. Copyright (c) 2026 Leonid Ganeline.
