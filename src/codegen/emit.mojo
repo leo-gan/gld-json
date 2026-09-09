@@ -384,21 +384,50 @@ def _emit_decode(doc: SchemaDoc, ty: SchemaType, scc: List[Int], self_id: Int) -
     return out
 
 
-def _emit_try_eat_unrolled(lit: String) -> String:
-    """Compare key bytes in place. glaze / yyjson: no String on the hot path."""
+def _word_le(lit: String, start: Int, n: Int) -> UInt64:
     var b = lit.as_bytes()
-    var n = len(b)
-    var out = "        if r.pos + " + String(n) + " > len(r.data)"
+    var w = UInt64(0)
     var i = 0
     while i < n:
+        w = w | (UInt64(Int(b[start + i])) << UInt64(i * 8))
+        i += 1
+    return w
+
+
+def _emit_try_eat_unrolled(lit: String) -> String:
+    """Word compare (u64 then u32) then tail bytes. Not 14 scalar tests."""
+    var b = lit.as_bytes()
+    var n = len(b)
+    var out = "        if r.pos + " + String(n) + " > len(r.data):\n"
+    out += "            return False\n"
+    var i = 0
+    if n >= 8:
+        out += "        if r.load_u64() != UInt64(" + String(_word_le(lit, 0, 8)) + "):\n"
+        out += "            return False\n"
+        i = 8
+        if n >= 12:
+            out += (
+                "        if r.load_u32_at(8) != UInt32("
+                + String(_word_le(lit, 8, 4))
+                + "):\n            return False\n"
+            )
+            i = 12
+    elif n >= 4:
         out += (
-            " or Int(r.data[r.pos + "
+            "        if r.load_u32_at(0) != UInt32("
+            + String(_word_le(lit, 0, 4))
+            + "):\n            return False\n"
+        )
+        i = 4
+    while i < n:
+        out += (
+            "        if Int(r.data[r.pos + "
             + String(i)
             + "]) != "
             + String(Int(b[i]))
+            + ":\n            return False\n"
         )
         i += 1
-    out += ":\n            return False\n"
     out += "        r.pos += " + String(n) + "\n"
     return out
 
@@ -412,7 +441,7 @@ def _decode_block_here(
     if t.kind == ST_BOOL:
         return indent + acc + " = read_bool_here(r)\n"
     if t.kind == ST_INT:
-        return indent + acc + " = r.read_number_here().i\n"
+        return indent + acc + " = r.read_int_here()\n"
     if t.kind == ST_NUMBER:
         return indent + acc + " = read_float_here(r)\n"
     if t.kind == ST_STRING:

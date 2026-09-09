@@ -73,11 +73,15 @@ struct Pet0(Copyable, Movable, Defaultable, Deinitable, JsonDatum):
         w.write_byte(Byte(125))
 
     def _decode_expected[origin: ImmOrigin](mut self, mut r: WireReader[origin]) raises DecodeError -> Bool:
-        if r.pos + 8 > len(r.data) or Int(r.data[r.pos + 0]) != 34 or Int(r.data[r.pos + 1]) != 108 or Int(r.data[r.pos + 2]) != 105 or Int(r.data[r.pos + 3]) != 118 or Int(r.data[r.pos + 4]) != 101 or Int(r.data[r.pos + 5]) != 115 or Int(r.data[r.pos + 6]) != 34 or Int(r.data[r.pos + 7]) != 58:
+        if r.pos + 8 > len(r.data):
+            return False
+        if r.load_u64() != UInt64(4189037483023494178):
             return False
         r.pos += 8
-        self.lives = r.read_number_here().i
-        if r.pos + 1 > len(r.data) or Int(r.data[r.pos + 0]) != 125:
+        self.lives = r.read_int_here()
+        if r.pos + 1 > len(r.data):
+            return False
+        if Int(r.data[r.pos + 0]) != 125:
             return False
         r.pos += 1
         return True

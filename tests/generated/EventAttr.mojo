@@ -93,15 +93,27 @@ struct EventAttr(Copyable, Movable, Defaultable, Deinitable, JsonDatum):
         w.write_byte(Byte(125))
 
     def _decode_expected[origin: ImmOrigin](mut self, mut r: WireReader[origin]) raises DecodeError -> Bool:
-        if r.pos + 6 > len(r.data) or Int(r.data[r.pos + 0]) != 34 or Int(r.data[r.pos + 1]) != 107 or Int(r.data[r.pos + 2]) != 101 or Int(r.data[r.pos + 3]) != 121 or Int(r.data[r.pos + 4]) != 34 or Int(r.data[r.pos + 5]) != 58:
+        if r.pos + 6 > len(r.data):
+            return False
+        if r.load_u32_at(0) != UInt32(2036689698):
+            return False
+        if Int(r.data[r.pos + 4]) != 34:
+            return False
+        if Int(r.data[r.pos + 5]) != 58:
             return False
         r.pos += 6
         self.key = r.read_string_here()
-        if r.pos + 9 > len(r.data) or Int(r.data[r.pos + 0]) != 44 or Int(r.data[r.pos + 1]) != 34 or Int(r.data[r.pos + 2]) != 118 or Int(r.data[r.pos + 3]) != 97 or Int(r.data[r.pos + 4]) != 108 or Int(r.data[r.pos + 5]) != 117 or Int(r.data[r.pos + 6]) != 101 or Int(r.data[r.pos + 7]) != 34 or Int(r.data[r.pos + 8]) != 58:
+        if r.pos + 9 > len(r.data):
+            return False
+        if r.load_u64() != UInt64(2478516278289375788):
+            return False
+        if Int(r.data[r.pos + 8]) != 58:
             return False
         r.pos += 9
         self.value = r.read_string_here()
-        if r.pos + 1 > len(r.data) or Int(r.data[r.pos + 0]) != 125:
+        if r.pos + 1 > len(r.data):
+            return False
+        if Int(r.data[r.pos + 0]) != 125:
             return False
         r.pos += 1
         return True

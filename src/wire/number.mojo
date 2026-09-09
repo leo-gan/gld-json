@@ -240,15 +240,16 @@ def parse_number[
             if is_digit(n):
                 raise DecodeError(DecodeError.KIND_NUMBER, start)
     else:
+        var nd = 0
         while pos < len(data):
             var d = Int(data[pos]) - 48
             if d < 0 or d > 9:
                 break
-            if not overflow:
-                if acc > (Int64.MAX - Int64(d)) // Int64(10):
-                    overflow = True
-                else:
-                    acc = acc * Int64(10) + Int64(d)
+            nd += 1
+            if nd <= 18:
+                acc = acc * Int64(10) + Int64(d)
+            else:
+                overflow = True
             pos += 1
     var is_int = True
     if pos < len(data) and Int(data[pos]) == 46:
@@ -286,8 +287,149 @@ def parse_number[
         if ok:
             return tok
     tok.is_int = False
+    var fv = 0.0
+    if _try_fast_float(data, start, pos, fv):
+        tok.f = fv
+        return tok
     tok.f = _parse_float(data, start, pos, start)
     return tok
+
+
+def parse_int[
+    origin: ImmOrigin
+](data: Span[Byte, origin], mut pos: Int) raises DecodeError -> Int64:
+    """Integer field: digit accumulate, no NumberTok. Falls back if not a pure int."""
+    var start = pos
+    if pos >= len(data):
+        raise DecodeError(DecodeError.KIND_EOF, pos)
+    var neg = False
+    if Int(data[pos]) == 45:
+        neg = True
+        pos += 1
+        if pos >= len(data):
+            raise DecodeError(DecodeError.KIND_EOF, pos)
+    var c = Int(data[pos])
+    if c == 43 or not is_digit(c):
+        raise DecodeError(DecodeError.KIND_NUMBER, start)
+    var acc = Int64(0)
+    var nd = 0
+    if c == 48:
+        pos += 1
+        if pos < len(data) and is_digit(Int(data[pos])):
+            raise DecodeError(DecodeError.KIND_NUMBER, start)
+    else:
+        while pos < len(data):
+            var d = Int(data[pos]) - 48
+            if d < 0 or d > 9:
+                break
+            nd += 1
+            if nd <= 18:
+                acc = acc * Int64(10) + Int64(d)
+            else:
+                pos = start
+                return parse_number(data, pos).i
+            pos += 1
+    if pos < len(data):
+        var n = Int(data[pos])
+        if n == 46 or n == 101 or n == 69:
+            pos = start
+            return parse_number(data, pos).i
+    if neg:
+        return -acc
+    return acc
+
+
+def _pow10f(k: Int) -> Float64:
+    var p = 1.0
+    var i = 0
+    while i < k:
+        p = p * 10.0
+        i += 1
+    return p
+
+
+def _try_fast_float[
+    origin: ImmOrigin
+](data: Span[Byte, origin], start: Int, end: Int, mut out: Float64) -> Bool:
+    """In-place decimal, no String/atof. yyjson short path. False → fall back."""
+    if end <= start:
+        return False
+    var i = start
+    var neg = False
+    if Int(data[i]) == 45:
+        neg = True
+        i += 1
+        if i >= end:
+            return False
+    var acc = Int64(0)
+    var nd = 0
+    var frac = 0
+    if i < end and Int(data[i]) == 48:
+        i += 1
+        nd = 1
+    else:
+        while i < end:
+            var d = Int(data[i]) - 48
+            if d < 0 or d > 9:
+                break
+            nd += 1
+            if nd > 15:
+                return False
+            acc = acc * Int64(10) + Int64(d)
+            i += 1
+    if i < end and Int(data[i]) == 46:
+        i += 1
+        var fs = i
+        while i < end:
+            var d = Int(data[i]) - 48
+            if d < 0 or d > 9:
+                break
+            nd += 1
+            if nd > 15:
+                return False
+            acc = acc * Int64(10) + Int64(d)
+            i += 1
+        frac = i - fs
+        if frac == 0:
+            return False
+    var exp = 0
+    if i < end and (Int(data[i]) == 101 or Int(data[i]) == 69):
+        i += 1
+        var eneg = False
+        if i < end and (Int(data[i]) == 43 or Int(data[i]) == 45):
+            eneg = Int(data[i]) == 45
+            i += 1
+        var ev = 0
+        var ed = 0
+        while i < end:
+            var d = Int(data[i]) - 48
+            if d < 0 or d > 9:
+                break
+            ev = ev * 10 + d
+            ed += 1
+            if ev > 22:
+                return False
+            i += 1
+        if ed == 0:
+            return False
+        if eneg:
+            exp = -ev
+        else:
+            exp = ev
+    if i != end or nd == 0:
+        return False
+    var p = exp - frac
+    var f = Float64(acc)
+    if p > 22 or p < -22:
+        return False
+    if p > 0:
+        f = f * _pow10f(p)
+    elif p < 0:
+        f = f / _pow10f(-p)
+    if neg:
+        f = -f
+    out = f
+    return True
 
 
 def _try_int64[

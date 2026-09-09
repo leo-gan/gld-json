@@ -1,9 +1,9 @@
-from std.collections import List, Span
+from std.collections import Span
 
 from runtime.error import DecodeError
 from runtime.options import DecodeOptions
 from wire.classify import MAX_COUNT, MAX_DEPTH
-from wire.number import NumberTok, parse_number
+from wire.number import NumberTok, parse_int, parse_number
 from wire.simdscan import skip_ws_span
 from wire.string import parse_string
 
@@ -13,8 +13,6 @@ struct WireReader[origin: ImmOrigin](Movable):
     var pos: Int
     var depth: Int
     var options: DecodeOptions
-    var positions: List[UInt32]
-    var idx: Int
 
     def __init__(
         out self,
@@ -27,12 +25,6 @@ struct WireReader[origin: ImmOrigin](Movable):
         self.pos = 0
         self.depth = depth
         self.options = options
-        self.positions = List[UInt32]()
-        self.idx = 0
-        if len(data) >= 3:
-            if Int(data[0]) == 0xEF and Int(data[1]) == 0xBB and Int(data[2]) == 0xBF:
-                # Rejected on first skip / peek. Stored so skip_ws can raise.
-                pass
 
     def remaining(self) -> Int:
         return len(self.data) - self.pos
@@ -40,9 +32,26 @@ struct WireReader[origin: ImmOrigin](Movable):
     def position(self) -> Int:
         return self.pos
 
-    def ensure_index(mut self) raises DecodeError:
-        _ = self.positions
-        _ = self.idx
+    def load_u64(self) -> UInt64:
+        """Unaligned little-endian 8 bytes at `pos`. Caller checked length."""
+        return (
+            self.data.unsafe_ptr()
+            .unsafe_offset(self.pos)
+            .unsafe_bitcast[UInt64]()[]
+        )
+
+    def load_u32_at(self, off: Int) -> UInt32:
+        """Unaligned little-endian 4 bytes at `pos + off`. Caller checked length."""
+        return (
+            self.data.unsafe_ptr()
+            .unsafe_offset(self.pos + off)
+            .unsafe_bitcast[UInt32]()[]
+        )
+
+    def eat_here(mut self, ch: Int) raises DecodeError:
+        if self.pos >= len(self.data) or Int(self.data[self.pos]) != ch:
+            raise DecodeError(DecodeError.KIND_SYNTAX, self.pos)
+        self.pos += 1
 
     def skip_ws(mut self) raises DecodeError:
         if self.pos == 0 and len(self.data) >= 3:
@@ -110,25 +119,26 @@ struct WireReader[origin: ImmOrigin](Movable):
     def _eat4(mut self, a: Int, b: Int, c: Int, d: Int) raises DecodeError:
         if self.pos + 4 > len(self.data):
             raise DecodeError(DecodeError.KIND_EOF, self.pos)
-        if (
-            Int(self.data[self.pos]) != a
-            or Int(self.data[self.pos + 1]) != b
-            or Int(self.data[self.pos + 2]) != c
-            or Int(self.data[self.pos + 3]) != d
-        ):
+        var want = (
+            UInt32(a)
+            | (UInt32(b) << 8)
+            | (UInt32(c) << 16)
+            | (UInt32(d) << 24)
+        )
+        if self.load_u32_at(0) != want:
             raise DecodeError(DecodeError.KIND_SYNTAX, self.pos)
         self.pos += 4
 
     def _eat5(mut self, a: Int, b: Int, c: Int, d: Int, e: Int) raises DecodeError:
         if self.pos + 5 > len(self.data):
             raise DecodeError(DecodeError.KIND_EOF, self.pos)
-        if (
-            Int(self.data[self.pos]) != a
-            or Int(self.data[self.pos + 1]) != b
-            or Int(self.data[self.pos + 2]) != c
-            or Int(self.data[self.pos + 3]) != d
-            or Int(self.data[self.pos + 4]) != e
-        ):
+        var want = (
+            UInt32(a)
+            | (UInt32(b) << 8)
+            | (UInt32(c) << 16)
+            | (UInt32(d) << 24)
+        )
+        if self.load_u32_at(0) != want or Int(self.data[self.pos + 4]) != e:
             raise DecodeError(DecodeError.KIND_SYNTAX, self.pos)
         self.pos += 5
 
@@ -145,6 +155,9 @@ struct WireReader[origin: ImmOrigin](Movable):
 
     def read_number_here(mut self) raises DecodeError -> NumberTok:
         return parse_number(self.data, self.pos)
+
+    def read_int_here(mut self) raises DecodeError -> Int64:
+        return parse_int(self.data, self.pos)
 
     def skip_value(mut self) raises DecodeError:
         var c = self.peek()
