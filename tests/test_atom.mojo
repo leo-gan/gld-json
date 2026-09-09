@@ -22,6 +22,12 @@ def test_int() raises:
     assert_equal(v.as_int(), Int64(150))
     var n = decode_value("-1".as_bytes())
     assert_equal(n.as_int(), Int64(-1))
+    var eight = decode_value("12345678".as_bytes())
+    assert_equal(eight.as_int(), Int64(12345678))
+    var nine = decode_value("123456789".as_bytes())
+    assert_equal(nine.as_int(), Int64(123456789))
+    var neg8 = decode_value("-10000000".as_bytes())
+    assert_equal(neg8.as_int(), Int64(-10000000))
 
 
 def test_trailing() raises:
