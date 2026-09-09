@@ -116,19 +116,39 @@ struct Keywords(Copyable, Movable, Defaultable, Deinitable, JsonDatum):
         w.write_byte(Byte(125))
 
     def _decode_expected[origin: ImmOrigin](mut self, mut r: WireReader[origin]) raises DecodeError -> Bool:
-        if r.pos + 9 > len(r.data) or Int(r.data[r.pos + 0]) != 34 or Int(r.data[r.pos + 1]) != 115 or Int(r.data[r.pos + 2]) != 116 or Int(r.data[r.pos + 3]) != 114 or Int(r.data[r.pos + 4]) != 117 or Int(r.data[r.pos + 5]) != 99 or Int(r.data[r.pos + 6]) != 116 or Int(r.data[r.pos + 7]) != 34 or Int(r.data[r.pos + 8]) != 58:
+        if r.pos + 9 > len(r.data):
+            return False
+        if r.load_u64() != UInt64(2482718650670543650):
+            return False
+        if Int(r.data[r.pos + 8]) != 58:
             return False
         r.pos += 9
-        self.struct_ = r.read_number_here().i
-        if r.pos + 6 > len(r.data) or Int(r.data[r.pos + 0]) != 44 or Int(r.data[r.pos + 1]) != 34 or Int(r.data[r.pos + 2]) != 102 or Int(r.data[r.pos + 3]) != 110 or Int(r.data[r.pos + 4]) != 34 or Int(r.data[r.pos + 5]) != 58:
+        self.struct_ = r.read_int_here()
+        if r.pos + 6 > len(r.data):
+            return False
+        if r.load_u32_at(0) != UInt32(1852187180):
+            return False
+        if Int(r.data[r.pos + 4]) != 34:
+            return False
+        if Int(r.data[r.pos + 5]) != 58:
             return False
         r.pos += 6
         self.fn_ = r.read_string_here()
-        if r.pos + 7 > len(r.data) or Int(r.data[r.pos + 0]) != 44 or Int(r.data[r.pos + 1]) != 34 or Int(r.data[r.pos + 2]) != 118 or Int(r.data[r.pos + 3]) != 97 or Int(r.data[r.pos + 4]) != 114 or Int(r.data[r.pos + 5]) != 34 or Int(r.data[r.pos + 6]) != 58:
+        if r.pos + 7 > len(r.data):
+            return False
+        if r.load_u32_at(0) != UInt32(1635131948):
+            return False
+        if Int(r.data[r.pos + 4]) != 114:
+            return False
+        if Int(r.data[r.pos + 5]) != 34:
+            return False
+        if Int(r.data[r.pos + 6]) != 58:
             return False
         r.pos += 7
         self.var_ = read_bool_here(r)
-        if r.pos + 1 > len(r.data) or Int(r.data[r.pos + 0]) != 125:
+        if r.pos + 1 > len(r.data):
+            return False
+        if Int(r.data[r.pos + 0]) != 125:
             return False
         r.pos += 1
         return True

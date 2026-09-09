@@ -73,11 +73,15 @@ struct Strings(Copyable, Movable, Defaultable, Deinitable, JsonDatum):
         w.write_byte(Byte(125))
 
     def _decode_expected[origin: ImmOrigin](mut self, mut r: WireReader[origin]) raises DecodeError -> Bool:
-        if r.pos + 8 > len(r.data) or Int(r.data[r.pos + 0]) != 34 or Int(r.data[r.pos + 1]) != 105 or Int(r.data[r.pos + 2]) != 116 or Int(r.data[r.pos + 3]) != 101 or Int(r.data[r.pos + 4]) != 109 or Int(r.data[r.pos + 5]) != 115 or Int(r.data[r.pos + 6]) != 34 or Int(r.data[r.pos + 7]) != 58:
+        if r.pos + 8 > len(r.data):
+            return False
+        if r.load_u64() != UInt64(4189037517098740002):
             return False
         r.pos += 8
         self.items = read_string_list(r)
-        if r.pos + 1 > len(r.data) or Int(r.data[r.pos + 0]) != 125:
+        if r.pos + 1 > len(r.data):
+            return False
+        if Int(r.data[r.pos + 0]) != 125:
             return False
         r.pos += 1
         return True

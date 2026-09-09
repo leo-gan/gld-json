@@ -46,5 +46,16 @@ def test_int_valued_float() raises:
     assert_true(s == String("1.0") or s == String("1"))
 
 
+def test_short_float() raises:
+    var half = decode_value("0.5".as_bytes())
+    assert_true(half.as_float() == 0.5)
+    var neg = decode_value("-2.5".as_bytes())
+    assert_true(neg.as_float() == -2.5)
+    var sci = decode_value("1.5e2".as_bytes())
+    assert_true(sci.as_float() == 150.0)
+    var tiny = decode_value("1.25e-1".as_bytes())
+    assert_true(tiny.as_float() == 0.125)
+
+
 def main() raises:
     TestSuite.discover_tests[__functions_in_module()]().run()

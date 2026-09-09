@@ -113,19 +113,45 @@ struct DocumentItem(Copyable, Movable, Defaultable, Deinitable, JsonDatum):
         w.write_byte(Byte(125))
 
     def _decode_expected[origin: ImmOrigin](mut self, mut r: WireReader[origin]) raises DecodeError -> Bool:
-        if r.pos + 6 > len(r.data) or Int(r.data[r.pos + 0]) != 34 or Int(r.data[r.pos + 1]) != 115 or Int(r.data[r.pos + 2]) != 107 or Int(r.data[r.pos + 3]) != 117 or Int(r.data[r.pos + 4]) != 34 or Int(r.data[r.pos + 5]) != 58:
+        if r.pos + 6 > len(r.data):
+            return False
+        if r.load_u32_at(0) != UInt32(1969976098):
+            return False
+        if Int(r.data[r.pos + 4]) != 34:
+            return False
+        if Int(r.data[r.pos + 5]) != 58:
             return False
         r.pos += 6
         self.sku = r.read_string_here()
-        if r.pos + 7 > len(r.data) or Int(r.data[r.pos + 0]) != 44 or Int(r.data[r.pos + 1]) != 34 or Int(r.data[r.pos + 2]) != 113 or Int(r.data[r.pos + 3]) != 116 or Int(r.data[r.pos + 4]) != 121 or Int(r.data[r.pos + 5]) != 34 or Int(r.data[r.pos + 6]) != 58:
+        if r.pos + 7 > len(r.data):
+            return False
+        if r.load_u32_at(0) != UInt32(1953571372):
+            return False
+        if Int(r.data[r.pos + 4]) != 121:
+            return False
+        if Int(r.data[r.pos + 5]) != 34:
+            return False
+        if Int(r.data[r.pos + 6]) != 58:
             return False
         r.pos += 7
-        self.qty = r.read_number_here().i
-        if r.pos + 15 > len(r.data) or Int(r.data[r.pos + 0]) != 44 or Int(r.data[r.pos + 1]) != 34 or Int(r.data[r.pos + 2]) != 112 or Int(r.data[r.pos + 3]) != 114 or Int(r.data[r.pos + 4]) != 105 or Int(r.data[r.pos + 5]) != 99 or Int(r.data[r.pos + 6]) != 101 or Int(r.data[r.pos + 7]) != 95 or Int(r.data[r.pos + 8]) != 109 or Int(r.data[r.pos + 9]) != 105 or Int(r.data[r.pos + 10]) != 110 or Int(r.data[r.pos + 11]) != 111 or Int(r.data[r.pos + 12]) != 114 or Int(r.data[r.pos + 13]) != 34 or Int(r.data[r.pos + 14]) != 58:
+        self.qty = r.read_int_here()
+        if r.pos + 15 > len(r.data):
+            return False
+        if r.load_u64() != UInt64(6874009710793597484):
+            return False
+        if r.load_u32_at(8) != UInt32(1869506925):
+            return False
+        if Int(r.data[r.pos + 12]) != 114:
+            return False
+        if Int(r.data[r.pos + 13]) != 34:
+            return False
+        if Int(r.data[r.pos + 14]) != 58:
             return False
         r.pos += 15
-        self.price_minor = r.read_number_here().i
-        if r.pos + 1 > len(r.data) or Int(r.data[r.pos + 0]) != 125:
+        self.price_minor = r.read_int_here()
+        if r.pos + 1 > len(r.data):
+            return False
+        if Int(r.data[r.pos + 0]) != 125:
             return False
         r.pos += 1
         return True

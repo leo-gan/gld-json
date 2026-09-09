@@ -60,9 +60,10 @@ def decode[
     var msg = T()
     var r = WireReader[origin](buf, options)
     msg.decode_from(r)
-    r.skip_ws()
-    if r.remaining() > 0:
-        raise DecodeError(DecodeError.KIND_TRAILING, r.position())
+    if r.pos != len(r.data):
+        r.skip_ws()
+        if r.remaining() > 0:
+            raise DecodeError(DecodeError.KIND_TRAILING, r.position())
     return msg^
 
 

@@ -142,21 +142,37 @@ struct Document(Copyable, Movable, Defaultable, Deinitable, JsonDatum):
         w.write_byte(Byte(125))
 
     def _decode_expected[origin: ImmOrigin](mut self, mut r: WireReader[origin]) raises DecodeError -> Bool:
-        if r.pos + 5 > len(r.data) or Int(r.data[r.pos + 0]) != 34 or Int(r.data[r.pos + 1]) != 105 or Int(r.data[r.pos + 2]) != 100 or Int(r.data[r.pos + 3]) != 34 or Int(r.data[r.pos + 4]) != 58:
+        if r.pos + 5 > len(r.data):
+            return False
+        if r.load_u32_at(0) != UInt32(577005858):
+            return False
+        if Int(r.data[r.pos + 4]) != 58:
             return False
         r.pos += 5
         self.id = r.read_string_here()
-        if r.pos + 10 > len(r.data) or Int(r.data[r.pos + 0]) != 44 or Int(r.data[r.pos + 1]) != 34 or Int(r.data[r.pos + 2]) != 115 or Int(r.data[r.pos + 3]) != 116 or Int(r.data[r.pos + 4]) != 97 or Int(r.data[r.pos + 5]) != 116 or Int(r.data[r.pos + 6]) != 117 or Int(r.data[r.pos + 7]) != 115 or Int(r.data[r.pos + 8]) != 34 or Int(r.data[r.pos + 9]) != 58:
+        if r.pos + 10 > len(r.data):
+            return False
+        if r.load_u64() != UInt64(8319683848551211564):
+            return False
+        if Int(r.data[r.pos + 8]) != 34:
+            return False
+        if Int(r.data[r.pos + 9]) != 58:
             return False
         r.pos += 10
-        self.status = r.read_number_here().i
-        if r.pos + 8 > len(r.data) or Int(r.data[r.pos + 0]) != 44 or Int(r.data[r.pos + 1]) != 34 or Int(r.data[r.pos + 2]) != 109 or Int(r.data[r.pos + 3]) != 101 or Int(r.data[r.pos + 4]) != 116 or Int(r.data[r.pos + 5]) != 97 or Int(r.data[r.pos + 6]) != 34 or Int(r.data[r.pos + 7]) != 58:
+        self.status = r.read_int_here()
+        if r.pos + 8 > len(r.data):
+            return False
+        if r.load_u64() != UInt64(4189017755953734188):
             return False
         r.pos += 8
         var _c = DocumentMeta()
         _c.decode_from(r)
         self.meta = _c^
-        if r.pos + 9 > len(r.data) or Int(r.data[r.pos + 0]) != 44 or Int(r.data[r.pos + 1]) != 34 or Int(r.data[r.pos + 2]) != 105 or Int(r.data[r.pos + 3]) != 116 or Int(r.data[r.pos + 4]) != 101 or Int(r.data[r.pos + 5]) != 109 or Int(r.data[r.pos + 6]) != 115 or Int(r.data[r.pos + 7]) != 34 or Int(r.data[r.pos + 8]) != 58:
+        if r.pos + 9 > len(r.data):
+            return False
+        if r.load_u64() != UInt64(2482448102123446828):
+            return False
+        if Int(r.data[r.pos + 8]) != 58:
             return False
         r.pos += 9
         self.items = List[DocumentItem]()
@@ -175,7 +191,9 @@ struct Document(Copyable, Movable, Defaultable, Deinitable, JsonDatum):
                 r.eat(44)
         else:
             r.eat(93)
-        if r.pos + 1 > len(r.data) or Int(r.data[r.pos + 0]) != 125:
+        if r.pos + 1 > len(r.data):
+            return False
+        if Int(r.data[r.pos + 0]) != 125:
             return False
         r.pos += 1
         return True

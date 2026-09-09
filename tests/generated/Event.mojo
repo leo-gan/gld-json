@@ -102,11 +102,19 @@ struct Event(Copyable, Movable, Defaultable, Deinitable, JsonDatum):
         w.write_byte(Byte(125))
 
     def _decode_expected[origin: ImmOrigin](mut self, mut r: WireReader[origin]) raises DecodeError -> Bool:
-        if r.pos + 5 > len(r.data) or Int(r.data[r.pos + 0]) != 34 or Int(r.data[r.pos + 1]) != 116 or Int(r.data[r.pos + 2]) != 115 or Int(r.data[r.pos + 3]) != 34 or Int(r.data[r.pos + 4]) != 58:
+        if r.pos + 5 > len(r.data):
+            return False
+        if r.load_u32_at(0) != UInt32(577991714):
+            return False
+        if Int(r.data[r.pos + 4]) != 58:
             return False
         r.pos += 5
-        self.ts = r.read_number_here().i
-        if r.pos + 9 > len(r.data) or Int(r.data[r.pos + 0]) != 44 or Int(r.data[r.pos + 1]) != 34 or Int(r.data[r.pos + 2]) != 97 or Int(r.data[r.pos + 3]) != 116 or Int(r.data[r.pos + 4]) != 116 or Int(r.data[r.pos + 5]) != 114 or Int(r.data[r.pos + 6]) != 115 or Int(r.data[r.pos + 7]) != 34 or Int(r.data[r.pos + 8]) != 58:
+        self.ts = r.read_int_here()
+        if r.pos + 9 > len(r.data):
+            return False
+        if r.load_u64() != UInt64(2482453664105570860):
+            return False
+        if Int(r.data[r.pos + 8]) != 58:
             return False
         r.pos += 9
         self.attrs = List[EventAttr]()
@@ -125,7 +133,9 @@ struct Event(Copyable, Movable, Defaultable, Deinitable, JsonDatum):
                 r.eat(44)
         else:
             r.eat(93)
-        if r.pos + 1 > len(r.data) or Int(r.data[r.pos + 0]) != 125:
+        if r.pos + 1 > len(r.data):
+            return False
+        if Int(r.data[r.pos + 0]) != 125:
             return False
         r.pos += 1
         return True

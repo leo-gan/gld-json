@@ -73,11 +73,17 @@ struct Telemetry(Copyable, Movable, Defaultable, Deinitable, JsonDatum):
         w.write_byte(Byte(125))
 
     def _decode_expected[origin: ImmOrigin](mut self, mut r: WireReader[origin]) raises DecodeError -> Bool:
-        if r.pos + 9 > len(r.data) or Int(r.data[r.pos + 0]) != 34 or Int(r.data[r.pos + 1]) != 118 or Int(r.data[r.pos + 2]) != 97 or Int(r.data[r.pos + 3]) != 108 or Int(r.data[r.pos + 4]) != 117 or Int(r.data[r.pos + 5]) != 101 or Int(r.data[r.pos + 6]) != 115 or Int(r.data[r.pos + 7]) != 34 or Int(r.data[r.pos + 8]) != 58:
+        if r.pos + 9 > len(r.data):
+            return False
+        if r.load_u64() != UInt64(2482439374615180834):
+            return False
+        if Int(r.data[r.pos + 8]) != 58:
             return False
         r.pos += 9
         self.values = read_float_list(r)
-        if r.pos + 1 > len(r.data) or Int(r.data[r.pos + 0]) != 125:
+        if r.pos + 1 > len(r.data):
+            return False
+        if Int(r.data[r.pos + 0]) != 125:
             return False
         r.pos += 1
         return True

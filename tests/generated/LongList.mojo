@@ -95,11 +95,15 @@ struct LongList(Copyable, Movable, Defaultable, Deinitable, JsonDatum):
         w.write_byte(Byte(125))
 
     def _decode_expected[origin: ImmOrigin](mut self, mut r: WireReader[origin]) raises DecodeError -> Bool:
-        if r.pos + 8 > len(r.data) or Int(r.data[r.pos + 0]) != 34 or Int(r.data[r.pos + 1]) != 118 or Int(r.data[r.pos + 2]) != 97 or Int(r.data[r.pos + 3]) != 108 or Int(r.data[r.pos + 4]) != 117 or Int(r.data[r.pos + 5]) != 101 or Int(r.data[r.pos + 6]) != 34 or Int(r.data[r.pos + 7]) != 58:
+        if r.pos + 8 > len(r.data):
+            return False
+        if r.load_u64() != UInt64(4189022158411888162):
             return False
         r.pos += 8
-        self.value = r.read_number_here().i
-        if r.pos + 8 > len(r.data) or Int(r.data[r.pos + 0]) != 44 or Int(r.data[r.pos + 1]) != 34 or Int(r.data[r.pos + 2]) != 110 or Int(r.data[r.pos + 3]) != 101 or Int(r.data[r.pos + 4]) != 120 or Int(r.data[r.pos + 5]) != 116 or Int(r.data[r.pos + 6]) != 34 or Int(r.data[r.pos + 7]) != 58:
+        self.value = r.read_int_here()
+        if r.pos + 8 > len(r.data):
+            return False
+        if r.load_u64() != UInt64(4189038663854596652):
             return False
         r.pos += 8
         if r.peek() == 110:
@@ -109,7 +113,9 @@ struct LongList(Copyable, Movable, Defaultable, Deinitable, JsonDatum):
             var _o = Int64()
             _o.decode_from(r)
             self.next = Optional[Int64](_o^)
-        if r.pos + 1 > len(r.data) or Int(r.data[r.pos + 0]) != 125:
+        if r.pos + 1 > len(r.data):
+            return False
+        if Int(r.data[r.pos + 0]) != 125:
             return False
         r.pos += 1
         return True
