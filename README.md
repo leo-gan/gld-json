@@ -12,7 +12,7 @@ This repository is a standalone library. It is not part of any other project.
 
 Documentation: [leo-gan.github.io/gld-json](https://leo-gan.github.io/gld-json/).
 That site has a JSON format overview for new readers, the install steps, JSON
-Schema walkthrough, examples, and test-data notes.
+Schema walkthrough, examples, encode/decode techniques, and test-data notes.
 
 ## Install
 

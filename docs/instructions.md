@@ -3,6 +3,7 @@
 If you have not used JSON as a wire format before, start with
 [Why JSON](why-json.md). That page explains objects, arrays, numbers, strings,
 pretty-print, JSON Lines, Pointer, and Patch.
+[Techniques](techniques.md) explains how encode and decode are implemented.
 
 ## Install Mojo 1.0.0
 

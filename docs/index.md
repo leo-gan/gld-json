@@ -33,6 +33,15 @@ Mojo. They do not wrap simdjson or any other C, C++, or Rust JSON library.
 
     [:octicons-arrow-right-24: See Examples](examples.md)
 
+-   __Techniques__
+
+    ---
+
+    How encode and decode work: pre-sized writes, SIMD scan, SWAR digits,
+    one-pass floats, and which ideas were measured and dropped.
+
+    [:octicons-arrow-right-24: Read Techniques](techniques.md)
+
 -   __Test data__
 
     ---
