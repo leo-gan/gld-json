@@ -90,30 +90,60 @@ struct WireReader[origin: ImmOrigin](Movable):
             self.depth -= 1
 
     def read_null(mut self) raises DecodeError:
-        self._lit("null")
+        self.skip_ws()
+        self._eat4(110, 117, 108, 108)
 
     def read_true(mut self) raises DecodeError:
-        self._lit("true")
+        self.skip_ws()
+        self._eat4(116, 114, 117, 101)
 
     def read_false(mut self) raises DecodeError:
-        self._lit("false")
-
-    def _lit(mut self, word: String) raises DecodeError:
         self.skip_ws()
-        var b = word.as_bytes()
-        var i = 0
-        while i < len(b):
-            if self.pos >= len(self.data) or Int(self.data[self.pos]) != Int(b[i]):
-                raise DecodeError(DecodeError.KIND_SYNTAX, self.pos)
-            self.pos += 1
-            i += 1
+        self._eat5(102, 97, 108, 115, 101)
+
+    def read_true_here(mut self) raises DecodeError:
+        self._eat4(116, 114, 117, 101)
+
+    def read_false_here(mut self) raises DecodeError:
+        self._eat5(102, 97, 108, 115, 101)
+
+    def _eat4(mut self, a: Int, b: Int, c: Int, d: Int) raises DecodeError:
+        if self.pos + 4 > len(self.data):
+            raise DecodeError(DecodeError.KIND_EOF, self.pos)
+        if (
+            Int(self.data[self.pos]) != a
+            or Int(self.data[self.pos + 1]) != b
+            or Int(self.data[self.pos + 2]) != c
+            or Int(self.data[self.pos + 3]) != d
+        ):
+            raise DecodeError(DecodeError.KIND_SYNTAX, self.pos)
+        self.pos += 4
+
+    def _eat5(mut self, a: Int, b: Int, c: Int, d: Int, e: Int) raises DecodeError:
+        if self.pos + 5 > len(self.data):
+            raise DecodeError(DecodeError.KIND_EOF, self.pos)
+        if (
+            Int(self.data[self.pos]) != a
+            or Int(self.data[self.pos + 1]) != b
+            or Int(self.data[self.pos + 2]) != c
+            or Int(self.data[self.pos + 3]) != d
+            or Int(self.data[self.pos + 4]) != e
+        ):
+            raise DecodeError(DecodeError.KIND_SYNTAX, self.pos)
+        self.pos += 5
 
     def read_string(mut self) raises DecodeError -> String:
         self.skip_ws()
         return parse_string(self.data, self.pos)
 
+    def read_string_here(mut self) raises DecodeError -> String:
+        return parse_string(self.data, self.pos)
+
     def read_number(mut self) raises DecodeError -> NumberTok:
         self.skip_ws()
+        return parse_number(self.data, self.pos)
+
+    def read_number_here(mut self) raises DecodeError -> NumberTok:
         return parse_number(self.data, self.pos)
 
     def skip_value(mut self) raises DecodeError:

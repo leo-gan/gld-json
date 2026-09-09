@@ -77,16 +77,36 @@ def from_value[T: JsonDatum](v: JsonValue) raises DecodeError -> T:
 def read_bool[origin: ImmOrigin](mut r: WireReader[origin]) raises DecodeError -> Bool:
     var c = r.peek()
     if c == 116:
-        r.read_true()
+        r.read_true_here()
         return True
     if c == 102:
-        r.read_false()
+        r.read_false_here()
         return False
     raise DecodeError(DecodeError.KIND_TYPE, r.position())
 
 
+def read_bool_here[origin: ImmOrigin](mut r: WireReader[origin]) raises DecodeError -> Bool:
+    if r.pos >= len(r.data):
+        raise DecodeError(DecodeError.KIND_EOF, r.pos)
+    var c = Int(r.data[r.pos])
+    if c == 116:
+        r.read_true_here()
+        return True
+    if c == 102:
+        r.read_false_here()
+        return False
+    raise DecodeError(DecodeError.KIND_TYPE, r.pos)
+
+
 def read_float[origin: ImmOrigin](mut r: WireReader[origin]) raises DecodeError -> Float64:
     var tok = r.read_number()
+    if tok.is_int:
+        return Float64(tok.i)
+    return tok.f
+
+
+def read_float_here[origin: ImmOrigin](mut r: WireReader[origin]) raises DecodeError -> Float64:
+    var tok = r.read_number_here()
     if tok.is_int:
         return Float64(tok.i)
     return tok.f

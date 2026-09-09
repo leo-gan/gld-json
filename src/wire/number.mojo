@@ -231,6 +231,8 @@ def parse_number[
         raise DecodeError(DecodeError.KIND_NUMBER, start)
     if not is_digit(c):
         raise DecodeError(DecodeError.KIND_NUMBER, start)
+    var acc = Int64(0)
+    var overflow = False
     if c == 48:
         pos += 1
         if pos < len(data):
@@ -238,7 +240,15 @@ def parse_number[
             if is_digit(n):
                 raise DecodeError(DecodeError.KIND_NUMBER, start)
     else:
-        while pos < len(data) and is_digit(Int(data[pos])):
+        while pos < len(data):
+            var d = Int(data[pos]) - 48
+            if d < 0 or d > 9:
+                break
+            if not overflow:
+                if acc > (Int64.MAX - Int64(d)) // Int64(10):
+                    overflow = True
+                else:
+                    acc = acc * Int64(10) + Int64(d)
             pos += 1
     var is_int = True
     if pos < len(data) and Int(data[pos]) == 46:
@@ -265,7 +275,13 @@ def parse_number[
         start=start,
         end=pos,
     )
-    if is_int:
+    if is_int and not overflow:
+        if neg:
+            tok.i = -acc
+        else:
+            tok.i = acc
+        return tok
+    if is_int and overflow:
         var ok = _try_int64(data, start, pos, tok)
         if ok:
             return tok

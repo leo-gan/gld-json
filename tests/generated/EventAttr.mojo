@@ -11,7 +11,9 @@ from json import (
     encoded_int_len,
     encoded_string_len,
     read_bool,
+    read_bool_here,
     read_float,
+    read_float_here,
     read_float_list,
     read_int_list,
     read_string_list,
@@ -91,14 +93,17 @@ struct EventAttr(Copyable, Movable, Defaultable, Deinitable, JsonDatum):
         w.write_byte(Byte(125))
 
     def _decode_expected[origin: ImmOrigin](mut self, mut r: WireReader[origin]) raises DecodeError -> Bool:
-        if not r.try_eat_bytes("\"key\":".as_bytes()):
+        if r.pos + 6 > len(r.data) or Int(r.data[r.pos + 0]) != 34 or Int(r.data[r.pos + 1]) != 107 or Int(r.data[r.pos + 2]) != 101 or Int(r.data[r.pos + 3]) != 121 or Int(r.data[r.pos + 4]) != 34 or Int(r.data[r.pos + 5]) != 58:
             return False
-        self.key = r.read_string()
-        if not r.try_eat_bytes(",\"value\":".as_bytes()):
+        r.pos += 6
+        self.key = r.read_string_here()
+        if r.pos + 9 > len(r.data) or Int(r.data[r.pos + 0]) != 44 or Int(r.data[r.pos + 1]) != 34 or Int(r.data[r.pos + 2]) != 118 or Int(r.data[r.pos + 3]) != 97 or Int(r.data[r.pos + 4]) != 108 or Int(r.data[r.pos + 5]) != 117 or Int(r.data[r.pos + 6]) != 101 or Int(r.data[r.pos + 7]) != 34 or Int(r.data[r.pos + 8]) != 58:
             return False
-        self.value = r.read_string()
-        if not r.try_eat_bytes("}".as_bytes()):
+        r.pos += 9
+        self.value = r.read_string_here()
+        if r.pos + 1 > len(r.data) or Int(r.data[r.pos + 0]) != 125:
             return False
+        r.pos += 1
         return True
 
     def decode_from[origin: ImmOrigin](mut self, mut r: WireReader[origin]) raises DecodeError:
