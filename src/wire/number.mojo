@@ -60,23 +60,27 @@ def write_int_digits(mut dest: List[Byte], mut pos: Int, v: Int64):
             pos += 1
             i += 1
         return
-    var neg = v < Int64(0)
-    var x = v
-    if neg:
-        x = -x
-    var tmp = List[Byte]()
-    while x > Int64(0):
-        var d = Int(x % Int64(10))
-        tmp.append(Byte(48 + d))
-        x = x // Int64(10)
-    if neg:
+    var mag = v
+    if v < Int64(0):
         dest[pos] = Byte(45)
         pos += 1
-    var i = len(tmp) - 1
-    while i >= 0:
-        dest[pos] = tmp[i]
-        pos += 1
-        i -= 1
+        mag = -v
+    var end = pos
+    var x = mag
+    while True:
+        end += 1
+        x = x // Int64(10)
+        if x == Int64(0):
+            break
+    var write = end
+    x = mag
+    while True:
+        write -= 1
+        dest[write] = Byte(48 + Int(x % Int64(10)))
+        x = x // Int64(10)
+        if x == Int64(0):
+            break
+    pos = end
 
 
 def encoded_float_len(v: Float64) -> Int:

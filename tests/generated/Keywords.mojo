@@ -12,6 +12,12 @@ from json import (
     encoded_string_len,
     read_bool,
     read_float,
+    read_float_list,
+    read_int_list,
+    read_string_list,
+    write_float_list,
+    write_int_list,
+    write_string_list,
 )
 
 struct Keywords(Copyable, Movable, Defaultable, Deinitable, JsonDatum):

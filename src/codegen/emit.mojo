@@ -120,6 +120,12 @@ def _emit_struct(doc: SchemaDoc, tid: Int, name: String) raises DecodeError -> S
     out += "    encoded_string_len,\n"
     out += "    read_bool,\n"
     out += "    read_float,\n"
+    out += "    read_float_list,\n"
+    out += "    read_int_list,\n"
+    out += "    read_string_list,\n"
+    out += "    write_float_list,\n"
+    out += "    write_int_list,\n"
+    out += "    write_string_list,\n"
     out += ")\n\n"
     if ty.kind == ST_UNION:
         return out + _emit_union(doc, ty, name, scc)
@@ -264,7 +270,7 @@ def _emit_encode(doc: SchemaDoc, ty: SchemaType, scc: List[Int], self_id: Int) -
             indent = "            "
         out += indent + "w.write_member_sep(options, first)\n"
         out += indent + "first = False\n"
-        out += indent + "w.write_bytes(String(\"\\\"" + p.name + "\\\":\").as_bytes())\n"
+        out += indent + "w.write_bytes(\"\\\"" + p.name + "\\\":\".as_bytes())\n"
         out += indent + "if pretty:\n"
         out += indent + "    w.write_byte(Byte(32))\n"
         out += indent + _encode_stmt(doc, p.type_id, "self." + fname, scc, self_id) + "\n"
@@ -294,7 +300,26 @@ def _encode_stmt(doc: SchemaDoc, tid: Int, acc: String, scc: List[Int], self_id:
     if t.kind == ST_ENUM or t.kind == ST_CONST:
         return _encode_stmt(doc, t.inner, acc, scc, self_id)
     if t.kind == ST_ARRAY:
-        return "w.write_byte(Byte(91))\n        w.write_byte(Byte(93))"
+        var elem = _unwrap(doc, t.inner)
+        if elem.kind == ST_NUMBER:
+            return "write_float_list(w, " + acc + ", options)"
+        if elem.kind == ST_INT:
+            return "write_int_list(w, " + acc + ", options)"
+        if elem.kind == ST_STRING:
+            return "write_string_list(w, " + acc + ", options)"
+        var en = _type_name(doc, t.inner, scc, self_id)
+        var loop = "w.write_byte(Byte(91))\n"
+        loop += "        var _i = 0\n"
+        loop += "        while _i < len(" + acc + "):\n"
+        loop += "            w.write_member_sep(options, _i == 0)\n"
+        loop += "            " + acc + "[_i].encode_to(w, options)\n"
+        loop += "            _i += 1\n"
+        loop += "        if options.mode == EncodeOptions.PRETTY and len(" + acc + ") > 0:\n"
+        loop += "            w.write_byte(Byte(10))\n"
+        loop += "            w.write_indent(options)\n"
+        loop += "        w.write_byte(Byte(93))"
+        _ = en
+        return loop
     var call = acc
     if _starts(_type_name(doc, tid, scc, self_id), "Box["):
         call = acc + "[]"
@@ -303,9 +328,28 @@ def _encode_stmt(doc: SchemaDoc, tid: Int, acc: String, scc: List[Int], self_id:
 
 def _emit_decode(doc: SchemaDoc, ty: SchemaType, scc: List[Int], self_id: Int) -> String:
     var out = String()
+    out += "\n    def _decode_expected[origin: ImmOrigin](mut self, mut r: WireReader[origin]) raises DecodeError -> Bool:\n"
+    var i = 0
+    while i < len(ty.props):
+        var p = ty.props[i].copy()
+        var fname = mojo_ident(p.name)
+        var lit = String("\"") + p.name + "\":"
+        if i > 0:
+            lit = String(",") + lit
+        out += "        if not r.try_eat_bytes(\"" + _escape(lit) + "\".as_bytes()):\n"
+        out += "            return False\n"
+        out += _decode_block(doc, p.type_id, "self." + fname, scc, self_id, "        ")
+        i += 1
+    out += "        if not r.try_eat_bytes(\"}\".as_bytes()):\n"
+    out += "            return False\n"
+    out += "        return True\n"
     out += "\n    def decode_from[origin: ImmOrigin](mut self, mut r: WireReader[origin]) raises DecodeError:\n"
     out += "        r.eat(123)\n"
-    var i = 0
+    out += "        var saved = r.pos\n"
+    out += "        if self._decode_expected(r):\n"
+    out += "            return\n"
+    out += "        r.pos = saved\n"
+    i = 0
     while i < len(ty.props):
         var p = ty.props[i].copy()
         var fname = mojo_ident(p.name)
@@ -366,7 +410,31 @@ def _decode_block(
     if t.kind == ST_ENUM or t.kind == ST_CONST:
         return _decode_block(doc, t.inner, acc, scc, self_id, indent)
     if t.kind == ST_ARRAY:
-        return indent + "r.skip_value()\n"
+        var elem = _unwrap(doc, t.inner)
+        if elem.kind == ST_NUMBER:
+            return indent + acc + " = read_float_list(r)\n"
+        if elem.kind == ST_INT:
+            return indent + acc + " = read_int_list(r)\n"
+        if elem.kind == ST_STRING:
+            return indent + acc + " = read_string_list(r)\n"
+        var en = _type_name(doc, t.inner, scc, self_id)
+        var out = indent + acc + " = List[" + en + "]()\n"
+        out += indent + "r.eat(91)\n"
+        out += indent + "if r.peek() != 93:\n"
+        out += indent + "    while True:\n"
+        out += indent + "        var _el = " + en + "()\n"
+        out += indent + "        _el.decode_from(r)\n"
+        out += indent + "        " + acc + ".append(_el^)\n"
+        out += indent + "        var _s = r.peek()\n"
+        out += indent + "        if _s == 93:\n"
+        out += indent + "            r.eat(93)\n"
+        out += indent + "            break\n"
+        out += indent + "        if _s != 44:\n"
+        out += indent + "            raise DecodeError(DecodeError.KIND_SYNTAX, r.position())\n"
+        out += indent + "        r.eat(44)\n"
+        out += indent + "else:\n"
+        out += indent + "    r.eat(93)\n"
+        return out
     var n = _type_name(doc, tid, scc, self_id)
     if _starts(n, "Box["):
         var inner = _cut(n, 4, n.byte_length() - 1)
@@ -438,6 +506,25 @@ def _emit_union(doc: SchemaDoc, ty: SchemaType, name: String, scc: List[Int]) ->
         i += 1
     out += "\n    def decode_from[origin: ImmOrigin](mut self, mut r: WireReader[origin]) raises DecodeError:\n"
     out += "        r.skip_value()\n"
+    return out
+
+
+def _escape(s: String) -> String:
+    var out = String()
+    var b = s.as_bytes()
+    var i = 0
+    while i < len(b):
+        var c = Int(b[i])
+        if c == 34:
+            out += "\\\""
+        elif c == 92:
+            out += "\\\\"
+        else:
+            try:
+                out += String(from_utf8=b[i : i + 1])
+            except _:
+                pass
+        i += 1
     return out
 
 

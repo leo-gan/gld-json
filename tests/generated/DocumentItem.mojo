@@ -12,6 +12,12 @@ from json import (
     encoded_string_len,
     read_bool,
     read_float,
+    read_float_list,
+    read_int_list,
+    read_string_list,
+    write_float_list,
+    write_int_list,
+    write_string_list,
 )
 
 struct DocumentItem(Copyable, Movable, Defaultable, Deinitable, JsonDatum):
@@ -82,19 +88,19 @@ struct DocumentItem(Copyable, Movable, Defaultable, Deinitable, JsonDatum):
         var first = True
         w.write_member_sep(options, first)
         first = False
-        w.write_bytes(String("\"sku\":").as_bytes())
+        w.write_bytes("\"sku\":".as_bytes())
         if pretty:
             w.write_byte(Byte(32))
         w.write_string(self.sku)
         w.write_member_sep(options, first)
         first = False
-        w.write_bytes(String("\"qty\":").as_bytes())
+        w.write_bytes("\"qty\":".as_bytes())
         if pretty:
             w.write_byte(Byte(32))
         w.write_int(self.qty)
         w.write_member_sep(options, first)
         first = False
-        w.write_bytes(String("\"price_minor\":").as_bytes())
+        w.write_bytes("\"price_minor\":".as_bytes())
         if pretty:
             w.write_byte(Byte(32))
         w.write_int(self.price_minor)
@@ -104,8 +110,26 @@ struct DocumentItem(Copyable, Movable, Defaultable, Deinitable, JsonDatum):
             w.write_indent(options)
         w.write_byte(Byte(125))
 
+    def _decode_expected[origin: ImmOrigin](mut self, mut r: WireReader[origin]) raises DecodeError -> Bool:
+        if not r.try_eat_bytes("\"sku\":".as_bytes()):
+            return False
+        self.sku = r.read_string()
+        if not r.try_eat_bytes(",\"qty\":".as_bytes()):
+            return False
+        self.qty = r.read_number().i
+        if not r.try_eat_bytes(",\"price_minor\":".as_bytes()):
+            return False
+        self.price_minor = r.read_number().i
+        if not r.try_eat_bytes("}".as_bytes()):
+            return False
+        return True
+
     def decode_from[origin: ImmOrigin](mut self, mut r: WireReader[origin]) raises DecodeError:
         r.eat(123)
+        var saved = r.pos
+        if self._decode_expected(r):
+            return
+        r.pos = saved
         if r.peek() == 125:
             r.eat(125)
             return
