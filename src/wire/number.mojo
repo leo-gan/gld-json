@@ -37,8 +37,26 @@ def encoded_int_len(v: Int64) -> Int:
     if x < Int64(0):
         n = 1
         x = -x
-    if x == Int64(0):
+    if x < Int64(10):
         return n + 1
+    if x < Int64(100):
+        return n + 2
+    if x < Int64(1000):
+        return n + 3
+    if x < Int64(10000):
+        return n + 4
+    if x < Int64(100000):
+        return n + 5
+    if x < Int64(1000000):
+        return n + 6
+    if x < Int64(10000000):
+        return n + 7
+    if x < Int64(100000000):
+        return n + 8
+    if x < Int64(1000000000):
+        return n + 9
+    if x < Int64(10000000000):
+        return n + 10
     while x > Int64(0):
         n += 1
         x = x // Int64(10)
@@ -51,7 +69,6 @@ def write_int_digits(mut dest: List[Byte], mut pos: Int, v: Int64):
         pos += 1
         return
     if v == Int64.MIN:
-        # -9223372036854775808
         var s = String("-9223372036854775808")
         var b = s.as_bytes()
         var i = 0
@@ -86,8 +103,71 @@ def write_int_digits(mut dest: List[Byte], mut pos: Int, v: Int64):
 def encoded_float_len(v: Float64) -> Int:
     if v != v:
         return 0
+    if _int_valued_float(v):
+        return encoded_int_len(Int64(v)) + 2
     var s = _float_text(v)
     return s.byte_length()
+
+
+def _write_short_decimal(mut dest: List[Byte], mut pos: Int, v: Float64) -> Bool:
+    """Write values with at most 6 decimal digits without allocating String.
+
+    This is the yyjson / sonic-rs short-dtoa path for suite telemetry.
+    """
+    if v != v or v >= 1.0e12 or v <= -1.0e12:
+        return False
+    var sign = False
+    var x = v
+    if x < 0.0:
+        sign = True
+        x = -x
+    var scale = 1.0
+    var k = 0
+    while k <= 6:
+        var scaled = x * scale
+        var iv = Int64(scaled)
+        if Float64(iv) != scaled:
+            k += 1
+            scale = scale * 10.0
+            continue
+        if sign:
+            dest[pos] = Byte(45)
+            pos += 1
+        if k == 0:
+            write_int_digits(dest, pos, iv)
+            dest[pos] = Byte(46)
+            dest[pos + 1] = Byte(48)
+            pos += 2
+            return True
+        var pow10 = Int64(1)
+        var p = 0
+        while p < k:
+            pow10 = pow10 * Int64(10)
+            p += 1
+        var whole = iv // pow10
+        var frac = iv % pow10
+        write_int_digits(dest, pos, whole)
+        dest[pos] = Byte(46)
+        pos += 1
+        var digits = k
+        var tmp = pow10 // Int64(10)
+        while digits > 0:
+            dest[pos] = Byte(48 + Int(frac // tmp))
+            pos += 1
+            frac = frac % tmp
+            tmp = tmp // Int64(10)
+            digits -= 1
+        return True
+    return False
+
+
+def _int_valued_float(v: Float64) -> Bool:
+    if v != v:
+        return False
+    if v >= 1.0e15 or v <= -1.0e15:
+        return False
+    var iv = Int64(v)
+    return Float64(iv) == v
 
 
 def _f64_bits(v: Float64) -> UInt64:
@@ -117,6 +197,14 @@ def write_float_digits(mut dest: List[Byte], mut pos: Int, v: Float64) raises De
     var exp = Int((bits >> UInt64(52)) & UInt64(0x7FF))
     if exp == 0x7FF:
         raise DecodeError(DecodeError.KIND_RANGE, 0)
+    if not _is_neg_zero(v) and _int_valued_float(v):
+        write_int_digits(dest, pos, Int64(v))
+        dest[pos] = Byte(46)
+        dest[pos + 1] = Byte(48)
+        pos += 2
+        return
+    if _write_short_decimal(dest, pos, v):
+        return
     var s = _float_text(v)
     var b = s.as_bytes()
     var i = 0

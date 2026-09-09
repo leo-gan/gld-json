@@ -2,8 +2,9 @@ from std.collections import List, Span
 
 from runtime.error import DecodeError
 from runtime.options import DecodeOptions
-from wire.classify import MAX_COUNT, MAX_DEPTH, is_ws
+from wire.classify import MAX_COUNT, MAX_DEPTH
 from wire.number import NumberTok, parse_number
+from wire.simdscan import skip_ws_span
 from wire.string import parse_string
 
 
@@ -51,12 +52,9 @@ struct WireReader[origin: ImmOrigin](Movable):
                 and Int(self.data[2]) == 0xBF
             ):
                 raise DecodeError(DecodeError.KIND_SYNTAX, 0)
-        while self.pos < len(self.data):
-            var c = Int(self.data[self.pos])
-            if is_ws(c):
-                self.pos += 1
-            else:
-                return
+        var p = self.pos
+        skip_ws_span(self.data, p)
+        self.pos = p
 
     def peek(mut self) raises DecodeError -> Int:
         self.skip_ws()

@@ -25,11 +25,11 @@ trait JsonDatum(Copyable, Movable, Defaultable, Deinitable):
 def encode[
     T: JsonDatum
 ](value: T, options: EncodeOptions = EncodeOptions.compact) -> List[Byte]:
-    # Over-allocate and let the cursor writer grow. Skipping encoded_len
-    # on the hot path is the main encode win versus a two-pass walk.
-    var cap = value.encoded_len(options)
-    if cap < 64:
-        cap = 64
+    # Skip encoded_len on the hot path (glaze / yyjson: one write into a
+    # reused or over-sized buffer). 256 bytes covers every n=1 suite type.
+    var cap = 256
+    if options.mode == EncodeOptions.PRETTY:
+        cap = 512
     var w = WireWriter(capacity=cap, exact=True)
     value.encode_to(w, options)
     return w^.finish()

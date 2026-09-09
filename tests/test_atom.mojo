@@ -39,5 +39,12 @@ def test_constructors() raises:
     assert_equal(json_int(Int64(3)).as_int(), Int64(3))
 
 
+def test_int_valued_float() raises:
+    var v = decode_value("1.0".as_bytes())
+    var b = encode_value(v)
+    var s = String(from_utf8=b)
+    assert_true(s == String("1.0") or s == String("1"))
+
+
 def main() raises:
     TestSuite.discover_tests[__functions_in_module()]().run()
