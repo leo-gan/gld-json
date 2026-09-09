@@ -1,6 +1,6 @@
 from std.testing import TestSuite, assert_equal, assert_true
 
-from json import DecodeError, decode_value, encode_value, json_bool, json_int, json_null
+from json import DecodeError, decode_value, encode_value, json_bool, json_float, json_int, json_null
 
 
 def test_null() raises:
@@ -55,6 +55,23 @@ def test_short_float() raises:
     assert_true(sci.as_float() == 150.0)
     var tiny = decode_value("1.25e-1".as_bytes())
     assert_true(tiny.as_float() == 0.125)
+
+
+def test_round_decimal_rt() raises:
+    var v = json_float(0.1)
+    var b = encode_value(v)
+    var back = decode_value(b)
+    var d = back.as_float() - 0.1
+    if d < 0.0:
+        d = -d
+    assert_true(d < 1e-8)
+    var v2 = json_float(67.890123456)
+    var b2 = encode_value(v2)
+    var back2 = decode_value(b2)
+    var d2 = back2.as_float() - 67.890123456
+    if d2 < 0.0:
+        d2 = -d2
+    assert_true(d2 < 1e-8)
 
 
 def main() raises:
