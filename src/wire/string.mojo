@@ -108,6 +108,26 @@ def parse_string[
         raise DecodeError(DecodeError.KIND_SYNTAX, pos)
     var start = pos
     pos += 1
+    # Fast path: no backslash and no control bytes before the closing quote.
+    var scan = pos
+    var escaped = False
+    while scan < len(data):
+        var c = Int(data[scan])
+        if c == 34:
+            break
+        if c == 92:
+            escaped = True
+            break
+        if c < 32:
+            raise DecodeError(DecodeError.KIND_ESCAPE, scan)
+        scan += 1
+    if not escaped and scan < len(data) and Int(data[scan]) == 34:
+        var n = scan - pos
+        if n > MAX_ITEM_BYTES:
+            raise DecodeError(DecodeError.KIND_RANGE, start)
+        var s = string_from_utf8(data[pos:scan], start)
+        pos = scan + 1
+        return s^
     var out = List[Byte]()
     while pos < len(data):
         var c = Int(data[pos])

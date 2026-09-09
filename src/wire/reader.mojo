@@ -64,6 +64,18 @@ struct WireReader[origin: ImmOrigin](Movable):
             raise DecodeError(DecodeError.KIND_EOF, self.pos)
         return Int(self.data[self.pos])
 
+    def try_eat_bytes[origin2: ImmOrigin](mut self, lit: Span[Byte, origin2]) -> Bool:
+        var n = len(lit)
+        if self.pos + n > len(self.data):
+            return False
+        var i = 0
+        while i < n:
+            if Int(self.data[self.pos + i]) != Int(lit[i]):
+                return False
+            i += 1
+        self.pos += n
+        return True
+
     def eat(mut self, ch: Int) raises DecodeError:
         self.skip_ws()
         if self.pos >= len(self.data) or Int(self.data[self.pos]) != ch:

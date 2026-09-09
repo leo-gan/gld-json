@@ -12,6 +12,12 @@ from json import (
     encoded_string_len,
     read_bool,
     read_float,
+    read_float_list,
+    read_int_list,
+    read_string_list,
+    write_float_list,
+    write_int_list,
+    write_string_list,
 )
 
 struct Document(Copyable, Movable, Defaultable, Deinitable, JsonDatum):
@@ -96,28 +102,36 @@ struct Document(Copyable, Movable, Defaultable, Deinitable, JsonDatum):
         var first = True
         w.write_member_sep(options, first)
         first = False
-        w.write_bytes(String("\"id\":").as_bytes())
+        w.write_bytes("\"id\":".as_bytes())
         if pretty:
             w.write_byte(Byte(32))
         w.write_string(self.id)
         w.write_member_sep(options, first)
         first = False
-        w.write_bytes(String("\"status\":").as_bytes())
+        w.write_bytes("\"status\":".as_bytes())
         if pretty:
             w.write_byte(Byte(32))
         w.write_int(self.status)
         w.write_member_sep(options, first)
         first = False
-        w.write_bytes(String("\"meta\":").as_bytes())
+        w.write_bytes("\"meta\":".as_bytes())
         if pretty:
             w.write_byte(Byte(32))
         self.meta.encode_to(w, options)
         w.write_member_sep(options, first)
         first = False
-        w.write_bytes(String("\"items\":").as_bytes())
+        w.write_bytes("\"items\":".as_bytes())
         if pretty:
             w.write_byte(Byte(32))
         w.write_byte(Byte(91))
+        var _i = 0
+        while _i < len(self.items):
+            w.write_member_sep(options, _i == 0)
+            self.items[_i].encode_to(w, options)
+            _i += 1
+        if options.mode == EncodeOptions.PRETTY and len(self.items) > 0:
+            w.write_byte(Byte(10))
+            w.write_indent(options)
         w.write_byte(Byte(93))
         if pretty:
             w.pretty_depth -= 1
@@ -125,8 +139,46 @@ struct Document(Copyable, Movable, Defaultable, Deinitable, JsonDatum):
             w.write_indent(options)
         w.write_byte(Byte(125))
 
+    def _decode_expected[origin: ImmOrigin](mut self, mut r: WireReader[origin]) raises DecodeError -> Bool:
+        if not r.try_eat_bytes("\"id\":".as_bytes()):
+            return False
+        self.id = r.read_string()
+        if not r.try_eat_bytes(",\"status\":".as_bytes()):
+            return False
+        self.status = r.read_number().i
+        if not r.try_eat_bytes(",\"meta\":".as_bytes()):
+            return False
+        var _c = DocumentMeta()
+        _c.decode_from(r)
+        self.meta = _c^
+        if not r.try_eat_bytes(",\"items\":".as_bytes()):
+            return False
+        self.items = List[DocumentItem]()
+        r.eat(91)
+        if r.peek() != 93:
+            while True:
+                var _el = DocumentItem()
+                _el.decode_from(r)
+                self.items.append(_el^)
+                var _s = r.peek()
+                if _s == 93:
+                    r.eat(93)
+                    break
+                if _s != 44:
+                    raise DecodeError(DecodeError.KIND_SYNTAX, r.position())
+                r.eat(44)
+        else:
+            r.eat(93)
+        if not r.try_eat_bytes("}".as_bytes()):
+            return False
+        return True
+
     def decode_from[origin: ImmOrigin](mut self, mut r: WireReader[origin]) raises DecodeError:
         r.eat(123)
+        var saved = r.pos
+        if self._decode_expected(r):
+            return
+        r.pos = saved
         if r.peek() == 125:
             r.eat(125)
             return
@@ -142,7 +194,22 @@ struct Document(Copyable, Movable, Defaultable, Deinitable, JsonDatum):
                 _c.decode_from(r)
                 self.meta = _c^
             elif key == "items":
-                r.skip_value()
+                self.items = List[DocumentItem]()
+                r.eat(91)
+                if r.peek() != 93:
+                    while True:
+                        var _el = DocumentItem()
+                        _el.decode_from(r)
+                        self.items.append(_el^)
+                        var _s = r.peek()
+                        if _s == 93:
+                            r.eat(93)
+                            break
+                        if _s != 44:
+                            raise DecodeError(DecodeError.KIND_SYNTAX, r.position())
+                        r.eat(44)
+                else:
+                    r.eat(93)
             else:
                 r.skip_value()
             var s = r.peek()

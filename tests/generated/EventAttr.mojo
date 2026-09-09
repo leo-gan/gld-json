@@ -12,6 +12,12 @@ from json import (
     encoded_string_len,
     read_bool,
     read_float,
+    read_float_list,
+    read_int_list,
+    read_string_list,
+    write_float_list,
+    write_int_list,
+    write_string_list,
 )
 
 struct EventAttr(Copyable, Movable, Defaultable, Deinitable, JsonDatum):
@@ -68,13 +74,13 @@ struct EventAttr(Copyable, Movable, Defaultable, Deinitable, JsonDatum):
         var first = True
         w.write_member_sep(options, first)
         first = False
-        w.write_bytes(String("\"key\":").as_bytes())
+        w.write_bytes("\"key\":".as_bytes())
         if pretty:
             w.write_byte(Byte(32))
         w.write_string(self.key)
         w.write_member_sep(options, first)
         first = False
-        w.write_bytes(String("\"value\":").as_bytes())
+        w.write_bytes("\"value\":".as_bytes())
         if pretty:
             w.write_byte(Byte(32))
         w.write_string(self.value)
@@ -84,8 +90,23 @@ struct EventAttr(Copyable, Movable, Defaultable, Deinitable, JsonDatum):
             w.write_indent(options)
         w.write_byte(Byte(125))
 
+    def _decode_expected[origin: ImmOrigin](mut self, mut r: WireReader[origin]) raises DecodeError -> Bool:
+        if not r.try_eat_bytes("\"key\":".as_bytes()):
+            return False
+        self.key = r.read_string()
+        if not r.try_eat_bytes(",\"value\":".as_bytes()):
+            return False
+        self.value = r.read_string()
+        if not r.try_eat_bytes("}".as_bytes()):
+            return False
+        return True
+
     def decode_from[origin: ImmOrigin](mut self, mut r: WireReader[origin]) raises DecodeError:
         r.eat(123)
+        var saved = r.pos
+        if self._decode_expected(r):
+            return
+        r.pos = saved
         if r.peek() == 125:
             r.eat(125)
             return

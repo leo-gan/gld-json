@@ -12,6 +12,12 @@ from json import (
     encoded_string_len,
     read_bool,
     read_float,
+    read_float_list,
+    read_int_list,
+    read_string_list,
+    write_float_list,
+    write_int_list,
+    write_string_list,
 )
 
 struct Event(Copyable, Movable, Defaultable, Deinitable, JsonDatum):
@@ -68,16 +74,24 @@ struct Event(Copyable, Movable, Defaultable, Deinitable, JsonDatum):
         var first = True
         w.write_member_sep(options, first)
         first = False
-        w.write_bytes(String("\"ts\":").as_bytes())
+        w.write_bytes("\"ts\":".as_bytes())
         if pretty:
             w.write_byte(Byte(32))
         w.write_int(self.ts)
         w.write_member_sep(options, first)
         first = False
-        w.write_bytes(String("\"attrs\":").as_bytes())
+        w.write_bytes("\"attrs\":".as_bytes())
         if pretty:
             w.write_byte(Byte(32))
         w.write_byte(Byte(91))
+        var _i = 0
+        while _i < len(self.attrs):
+            w.write_member_sep(options, _i == 0)
+            self.attrs[_i].encode_to(w, options)
+            _i += 1
+        if options.mode == EncodeOptions.PRETTY and len(self.attrs) > 0:
+            w.write_byte(Byte(10))
+            w.write_indent(options)
         w.write_byte(Byte(93))
         if pretty:
             w.pretty_depth -= 1
@@ -85,8 +99,38 @@ struct Event(Copyable, Movable, Defaultable, Deinitable, JsonDatum):
             w.write_indent(options)
         w.write_byte(Byte(125))
 
+    def _decode_expected[origin: ImmOrigin](mut self, mut r: WireReader[origin]) raises DecodeError -> Bool:
+        if not r.try_eat_bytes("\"ts\":".as_bytes()):
+            return False
+        self.ts = r.read_number().i
+        if not r.try_eat_bytes(",\"attrs\":".as_bytes()):
+            return False
+        self.attrs = List[EventAttr]()
+        r.eat(91)
+        if r.peek() != 93:
+            while True:
+                var _el = EventAttr()
+                _el.decode_from(r)
+                self.attrs.append(_el^)
+                var _s = r.peek()
+                if _s == 93:
+                    r.eat(93)
+                    break
+                if _s != 44:
+                    raise DecodeError(DecodeError.KIND_SYNTAX, r.position())
+                r.eat(44)
+        else:
+            r.eat(93)
+        if not r.try_eat_bytes("}".as_bytes()):
+            return False
+        return True
+
     def decode_from[origin: ImmOrigin](mut self, mut r: WireReader[origin]) raises DecodeError:
         r.eat(123)
+        var saved = r.pos
+        if self._decode_expected(r):
+            return
+        r.pos = saved
         if r.peek() == 125:
             r.eat(125)
             return
@@ -96,7 +140,22 @@ struct Event(Copyable, Movable, Defaultable, Deinitable, JsonDatum):
             if key == "ts":
                 self.ts = r.read_number().i
             elif key == "attrs":
-                r.skip_value()
+                self.attrs = List[EventAttr]()
+                r.eat(91)
+                if r.peek() != 93:
+                    while True:
+                        var _el = EventAttr()
+                        _el.decode_from(r)
+                        self.attrs.append(_el^)
+                        var _s = r.peek()
+                        if _s == 93:
+                            r.eat(93)
+                            break
+                        if _s != 44:
+                            raise DecodeError(DecodeError.KIND_SYNTAX, r.position())
+                        r.eat(44)
+                else:
+                    r.eat(93)
             else:
                 r.skip_value()
             var s = r.peek()
