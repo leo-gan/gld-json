@@ -58,6 +58,11 @@ var m2 = decode[Message](buf)
 `from json import …` resolves with `mojo run -I src` in a checkout, or from
 `json.mojoc` after the package is installed.
 
+`decode_jsonl_values` reads zero or more compact values separated by newlines.
+`pointer_get` and `pointer_set` walk an RFC 6901 path. `apply_patch` applies
+RFC 6902 operations. `merge_patch` applies RFC 7396. Pretty-print uses
+`EncodeOptions.pretty`.
+
 Schema-free values use `JsonValue`:
 
 ```mojo
