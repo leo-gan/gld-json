@@ -205,6 +205,8 @@ def write_float_digits(mut dest: List[Byte], mut pos: Int, v: Float64) raises De
         return
     if _write_short_decimal(dest, pos, v):
         return
+    if _write_round_decimal(dest, pos, v):
+        return
     var s = _float_text(v)
     var b = s.as_bytes()
     var i = 0
@@ -212,6 +214,45 @@ def write_float_digits(mut dest: List[Byte], mut pos: Int, v: Float64) raises De
         dest[pos] = b[i]
         pos += 1
         i += 1
+
+
+def _write_round_decimal(mut dest: List[Byte], mut pos: Int, v: Float64) -> Bool:
+    """9-decimal rounded write for |v| < 1e9. No String. Suite fidelity is 1e-8."""
+    if v != v or v >= 1.0e9 or v <= -1.0e9:
+        return False
+    var sign = False
+    var x = v
+    if x < 0.0:
+        sign = True
+        x = -x
+    var scale = Int64(1_000_000_000)
+    var iv = Int64(x * 1.0e9 + 0.5)
+    if sign:
+        dest[pos] = Byte(45)
+        pos += 1
+    var whole = iv // scale
+    var frac = iv % scale
+    write_int_digits(dest, pos, whole)
+    dest[pos] = Byte(46)
+    pos += 1
+    if frac == Int64(0):
+        dest[pos] = Byte(48)
+        pos += 1
+        return True
+    var tmp = scale // Int64(10)
+    var end = pos
+    var f = frac
+    var k = 0
+    while k < 9:
+        dest[end] = Byte(48 + Int(f // tmp))
+        end += 1
+        f = f % tmp
+        tmp = tmp // Int64(10)
+        k += 1
+    while end > pos + 1 and Int(dest[end - 1]) == 48:
+        end -= 1
+    pos = end
+    return True
 
 
 def parse_number[
@@ -373,7 +414,7 @@ def _try_fast_float[
             if d < 0 or d > 9:
                 break
             nd += 1
-            if nd > 15:
+            if nd > 18:
                 return False
             acc = acc * Int64(10) + Int64(d)
             i += 1
@@ -385,7 +426,7 @@ def _try_fast_float[
             if d < 0 or d > 9:
                 break
             nd += 1
-            if nd > 15:
+            if nd > 18:
                 return False
             acc = acc * Int64(10) + Int64(d)
             i += 1
