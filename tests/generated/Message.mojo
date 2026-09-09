@@ -11,7 +11,9 @@ from json import (
     encoded_int_len,
     encoded_string_len,
     read_bool,
+    read_bool_here,
     read_float,
+    read_float_here,
     read_float_list,
     read_int_list,
     read_string_list,
@@ -217,32 +219,41 @@ struct Message(Copyable, Movable, Defaultable, Deinitable, JsonDatum):
         w.write_byte(Byte(125))
 
     def _decode_expected[origin: ImmOrigin](mut self, mut r: WireReader[origin]) raises DecodeError -> Bool:
-        if not r.try_eat_bytes("\"f_bool\":".as_bytes()):
+        if r.pos + 9 > len(r.data) or Int(r.data[r.pos + 0]) != 34 or Int(r.data[r.pos + 1]) != 102 or Int(r.data[r.pos + 2]) != 95 or Int(r.data[r.pos + 3]) != 98 or Int(r.data[r.pos + 4]) != 111 or Int(r.data[r.pos + 5]) != 111 or Int(r.data[r.pos + 6]) != 108 or Int(r.data[r.pos + 7]) != 34 or Int(r.data[r.pos + 8]) != 58:
             return False
-        self.f_bool = read_bool(r)
-        if not r.try_eat_bytes(",\"f_int32\":".as_bytes()):
+        r.pos += 9
+        self.f_bool = read_bool_here(r)
+        if r.pos + 11 > len(r.data) or Int(r.data[r.pos + 0]) != 44 or Int(r.data[r.pos + 1]) != 34 or Int(r.data[r.pos + 2]) != 102 or Int(r.data[r.pos + 3]) != 95 or Int(r.data[r.pos + 4]) != 105 or Int(r.data[r.pos + 5]) != 110 or Int(r.data[r.pos + 6]) != 116 or Int(r.data[r.pos + 7]) != 51 or Int(r.data[r.pos + 8]) != 50 or Int(r.data[r.pos + 9]) != 34 or Int(r.data[r.pos + 10]) != 58:
             return False
-        self.f_int32 = r.read_number().i
-        if not r.try_eat_bytes(",\"f_int64\":".as_bytes()):
+        r.pos += 11
+        self.f_int32 = r.read_number_here().i
+        if r.pos + 11 > len(r.data) or Int(r.data[r.pos + 0]) != 44 or Int(r.data[r.pos + 1]) != 34 or Int(r.data[r.pos + 2]) != 102 or Int(r.data[r.pos + 3]) != 95 or Int(r.data[r.pos + 4]) != 105 or Int(r.data[r.pos + 5]) != 110 or Int(r.data[r.pos + 6]) != 116 or Int(r.data[r.pos + 7]) != 54 or Int(r.data[r.pos + 8]) != 52 or Int(r.data[r.pos + 9]) != 34 or Int(r.data[r.pos + 10]) != 58:
             return False
-        self.f_int64 = r.read_number().i
-        if not r.try_eat_bytes(",\"f_float64\":".as_bytes()):
+        r.pos += 11
+        self.f_int64 = r.read_number_here().i
+        if r.pos + 13 > len(r.data) or Int(r.data[r.pos + 0]) != 44 or Int(r.data[r.pos + 1]) != 34 or Int(r.data[r.pos + 2]) != 102 or Int(r.data[r.pos + 3]) != 95 or Int(r.data[r.pos + 4]) != 102 or Int(r.data[r.pos + 5]) != 108 or Int(r.data[r.pos + 6]) != 111 or Int(r.data[r.pos + 7]) != 97 or Int(r.data[r.pos + 8]) != 116 or Int(r.data[r.pos + 9]) != 54 or Int(r.data[r.pos + 10]) != 52 or Int(r.data[r.pos + 11]) != 34 or Int(r.data[r.pos + 12]) != 58:
             return False
-        self.f_float64 = read_float(r)
-        if not r.try_eat_bytes(",\"f_string\":".as_bytes()):
+        r.pos += 13
+        self.f_float64 = read_float_here(r)
+        if r.pos + 12 > len(r.data) or Int(r.data[r.pos + 0]) != 44 or Int(r.data[r.pos + 1]) != 34 or Int(r.data[r.pos + 2]) != 102 or Int(r.data[r.pos + 3]) != 95 or Int(r.data[r.pos + 4]) != 115 or Int(r.data[r.pos + 5]) != 116 or Int(r.data[r.pos + 6]) != 114 or Int(r.data[r.pos + 7]) != 105 or Int(r.data[r.pos + 8]) != 110 or Int(r.data[r.pos + 9]) != 103 or Int(r.data[r.pos + 10]) != 34 or Int(r.data[r.pos + 11]) != 58:
             return False
-        self.f_string = r.read_string()
-        if not r.try_eat_bytes(",\"f_bool_2\":".as_bytes()):
+        r.pos += 12
+        self.f_string = r.read_string_here()
+        if r.pos + 12 > len(r.data) or Int(r.data[r.pos + 0]) != 44 or Int(r.data[r.pos + 1]) != 34 or Int(r.data[r.pos + 2]) != 102 or Int(r.data[r.pos + 3]) != 95 or Int(r.data[r.pos + 4]) != 98 or Int(r.data[r.pos + 5]) != 111 or Int(r.data[r.pos + 6]) != 111 or Int(r.data[r.pos + 7]) != 108 or Int(r.data[r.pos + 8]) != 95 or Int(r.data[r.pos + 9]) != 50 or Int(r.data[r.pos + 10]) != 34 or Int(r.data[r.pos + 11]) != 58:
             return False
-        self.f_bool_2 = read_bool(r)
-        if not r.try_eat_bytes(",\"f_int32_2\":".as_bytes()):
+        r.pos += 12
+        self.f_bool_2 = read_bool_here(r)
+        if r.pos + 13 > len(r.data) or Int(r.data[r.pos + 0]) != 44 or Int(r.data[r.pos + 1]) != 34 or Int(r.data[r.pos + 2]) != 102 or Int(r.data[r.pos + 3]) != 95 or Int(r.data[r.pos + 4]) != 105 or Int(r.data[r.pos + 5]) != 110 or Int(r.data[r.pos + 6]) != 116 or Int(r.data[r.pos + 7]) != 51 or Int(r.data[r.pos + 8]) != 50 or Int(r.data[r.pos + 9]) != 95 or Int(r.data[r.pos + 10]) != 50 or Int(r.data[r.pos + 11]) != 34 or Int(r.data[r.pos + 12]) != 58:
             return False
-        self.f_int32_2 = r.read_number().i
-        if not r.try_eat_bytes(",\"f_string_2\":".as_bytes()):
+        r.pos += 13
+        self.f_int32_2 = r.read_number_here().i
+        if r.pos + 14 > len(r.data) or Int(r.data[r.pos + 0]) != 44 or Int(r.data[r.pos + 1]) != 34 or Int(r.data[r.pos + 2]) != 102 or Int(r.data[r.pos + 3]) != 95 or Int(r.data[r.pos + 4]) != 115 or Int(r.data[r.pos + 5]) != 116 or Int(r.data[r.pos + 6]) != 114 or Int(r.data[r.pos + 7]) != 105 or Int(r.data[r.pos + 8]) != 110 or Int(r.data[r.pos + 9]) != 103 or Int(r.data[r.pos + 10]) != 95 or Int(r.data[r.pos + 11]) != 50 or Int(r.data[r.pos + 12]) != 34 or Int(r.data[r.pos + 13]) != 58:
             return False
-        self.f_string_2 = r.read_string()
-        if not r.try_eat_bytes("}".as_bytes()):
+        r.pos += 14
+        self.f_string_2 = r.read_string_here()
+        if r.pos + 1 > len(r.data) or Int(r.data[r.pos + 0]) != 125:
             return False
+        r.pos += 1
         return True
 
     def decode_from[origin: ImmOrigin](mut self, mut r: WireReader[origin]) raises DecodeError:

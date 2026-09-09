@@ -11,7 +11,9 @@ from json import (
     encoded_int_len,
     encoded_string_len,
     read_bool,
+    read_bool_here,
     read_float,
+    read_float_here,
     read_float_list,
     read_int_list,
     read_string_list,
@@ -71,11 +73,13 @@ struct Pet1(Copyable, Movable, Defaultable, Deinitable, JsonDatum):
         w.write_byte(Byte(125))
 
     def _decode_expected[origin: ImmOrigin](mut self, mut r: WireReader[origin]) raises DecodeError -> Bool:
-        if not r.try_eat_bytes("\"breed\":".as_bytes()):
+        if r.pos + 8 > len(r.data) or Int(r.data[r.pos + 0]) != 34 or Int(r.data[r.pos + 1]) != 98 or Int(r.data[r.pos + 2]) != 114 or Int(r.data[r.pos + 3]) != 101 or Int(r.data[r.pos + 4]) != 101 or Int(r.data[r.pos + 5]) != 100 or Int(r.data[r.pos + 6]) != 34 or Int(r.data[r.pos + 7]) != 58:
             return False
-        self.breed = r.read_string()
-        if not r.try_eat_bytes("}".as_bytes()):
+        r.pos += 8
+        self.breed = r.read_string_here()
+        if r.pos + 1 > len(r.data) or Int(r.data[r.pos + 0]) != 125:
             return False
+        r.pos += 1
         return True
 
     def decode_from[origin: ImmOrigin](mut self, mut r: WireReader[origin]) raises DecodeError:

@@ -119,7 +119,9 @@ def _emit_struct(doc: SchemaDoc, tid: Int, name: String) raises DecodeError -> S
     out += "    encoded_int_len,\n"
     out += "    encoded_string_len,\n"
     out += "    read_bool,\n"
+    out += "    read_bool_here,\n"
     out += "    read_float,\n"
+    out += "    read_float_here,\n"
     out += "    read_float_list,\n"
     out += "    read_int_list,\n"
     out += "    read_string_list,\n"
@@ -336,12 +338,10 @@ def _emit_decode(doc: SchemaDoc, ty: SchemaType, scc: List[Int], self_id: Int) -
         var lit = String("\"") + p.name + "\":"
         if i > 0:
             lit = String(",") + lit
-        out += "        if not r.try_eat_bytes(\"" + _escape(lit) + "\".as_bytes()):\n"
-        out += "            return False\n"
-        out += _decode_block(doc, p.type_id, "self." + fname, scc, self_id, "        ")
+        out += _emit_try_eat_unrolled(lit)
+        out += _decode_block_here(doc, p.type_id, "self." + fname, scc, self_id, "        ")
         i += 1
-    out += "        if not r.try_eat_bytes(\"}\".as_bytes()):\n"
-    out += "            return False\n"
+    out += _emit_try_eat_unrolled("}")
     out += "        return True\n"
     out += "\n    def decode_from[origin: ImmOrigin](mut self, mut r: WireReader[origin]) raises DecodeError:\n"
     out += "        r.eat(123)\n"
@@ -382,6 +382,44 @@ def _emit_decode(doc: SchemaDoc, ty: SchemaType, scc: List[Int], self_id: Int) -
     out += "            if r.peek() == 125:\n"
     out += "                raise DecodeError(DecodeError.KIND_SYNTAX, r.position())\n"
     return out
+
+
+def _emit_try_eat_unrolled(lit: String) -> String:
+    """Compare key bytes in place. glaze / yyjson: no String on the hot path."""
+    var b = lit.as_bytes()
+    var n = len(b)
+    var out = "        if r.pos + " + String(n) + " > len(r.data)"
+    var i = 0
+    while i < n:
+        out += (
+            " or Int(r.data[r.pos + "
+            + String(i)
+            + "]) != "
+            + String(Int(b[i]))
+        )
+        i += 1
+    out += ":\n            return False\n"
+    out += "        r.pos += " + String(n) + "\n"
+    return out
+
+
+def _decode_block_here(
+    doc: SchemaDoc, tid: Int, acc: String, scc: List[Int], self_id: Int, indent: String
+) -> String:
+    var t = doc.types[tid].copy()
+    if t.kind == ST_REF:
+        return _decode_block_here(doc, t.inner, acc, scc, self_id, indent)
+    if t.kind == ST_BOOL:
+        return indent + acc + " = read_bool_here(r)\n"
+    if t.kind == ST_INT:
+        return indent + acc + " = r.read_number_here().i\n"
+    if t.kind == ST_NUMBER:
+        return indent + acc + " = read_float_here(r)\n"
+    if t.kind == ST_STRING:
+        return indent + acc + " = r.read_string_here()\n"
+    if t.kind == ST_ENUM or t.kind == ST_CONST:
+        return _decode_block_here(doc, t.inner, acc, scc, self_id, indent)
+    return _decode_block(doc, tid, acc, scc, self_id, indent)
 
 
 def _decode_block(
