@@ -22,6 +22,14 @@ def test_int() raises:
     assert_equal(v.as_int(), Int64(150))
     var n = decode_value("-1".as_bytes())
     assert_equal(n.as_int(), Int64(-1))
+    var four = decode_value("1234".as_bytes())
+    assert_equal(four.as_int(), Int64(1234))
+    var fourb = decode_value("1000".as_bytes())
+    assert_equal(fourb.as_int(), Int64(1000))
+    var fourc = decode_value("9999".as_bytes())
+    assert_equal(fourc.as_int(), Int64(9999))
+    var six = decode_value("123456".as_bytes())
+    assert_equal(six.as_int(), Int64(123456))
     var eight = decode_value("12345678".as_bytes())
     assert_equal(eight.as_int(), Int64(12345678))
     var nine = decode_value("123456789".as_bytes())
@@ -61,6 +69,11 @@ def test_short_float() raises:
     assert_true(sci.as_float() == 150.0)
     var tiny = decode_value("1.25e-1".as_bytes())
     assert_true(tiny.as_float() == 0.125)
+    var fourf = decode_value("12.3456".as_bytes())
+    var df = fourf.as_float() - 12.3456
+    if df < 0.0:
+        df = -df
+    assert_true(df < 1e-12)
 
 
 def test_round_decimal_rt() raises:
