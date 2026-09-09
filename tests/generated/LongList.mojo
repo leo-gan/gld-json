@@ -1,0 +1,118 @@
+from std.collections import List, Optional, Span
+
+from json import (
+    Box,
+    DecodeError,
+    EncodeOptions,
+    JsonDatum,
+    WireReader,
+    WireWriter,
+    encoded_float_len,
+    encoded_int_len,
+    encoded_string_len,
+    read_bool,
+    read_float,
+)
+
+struct LongList(Copyable, Movable, Defaultable, Deinitable, JsonDatum):
+    var value: Int64
+    var next: Optional[Int64]
+
+    def __init__(out self):
+        self.value = Int64(0)
+        self.next = Optional[Int64]()
+
+    def __init__(out self, var value: Int64, var next: Optional[Int64]):
+        self.value = value^
+        self.next = next^
+
+    def encoded_len(self, options: EncodeOptions) -> Int:
+        return self.encoded_len_at(options, 0)
+
+    def encoded_len_at(self, options: EncodeOptions, depth: Int) -> Int:
+        var pretty = options.mode == EncodeOptions.PRETTY
+        var n = 1
+        var first = True
+        if pretty:
+            n += 1 + (depth + 1) * options.indent
+            if not first:
+                n += 1
+        elif not first:
+            n += 1
+        first = False
+        n += 9
+        if pretty:
+            n += 1
+        n += encoded_int_len(self.value)
+        if self.next:
+            if pretty:
+                n += 1 + (depth + 1) * options.indent
+                if not first:
+                    n += 1
+            elif not first:
+                n += 1
+            first = False
+            n += 8
+            if pretty:
+                n += 1
+            n += encoded_int_len(self.next.value())
+        if pretty:
+            n += 1 + depth * options.indent
+        n += 1
+        return n
+
+    def encode_to(self, mut w: WireWriter, options: EncodeOptions):
+        var pretty = options.mode == EncodeOptions.PRETTY
+        w.write_byte(Byte(123))
+        if pretty:
+            w.pretty_depth += 1
+        var first = True
+        w.write_member_sep(options, first)
+        first = False
+        w.write_bytes(String("\"value\":").as_bytes())
+        if pretty:
+            w.write_byte(Byte(32))
+        w.write_int(self.value)
+        if self.next:
+            w.write_member_sep(options, first)
+            first = False
+            w.write_bytes(String("\"next\":").as_bytes())
+            if pretty:
+                w.write_byte(Byte(32))
+            w.write_int(self.next.value())
+        if pretty:
+            w.pretty_depth -= 1
+            w.write_byte(Byte(10))
+            w.write_indent(options)
+        w.write_byte(Byte(125))
+
+    def decode_from[origin: ImmOrigin](mut self, mut r: WireReader[origin]) raises DecodeError:
+        r.eat(123)
+        self.next = Optional[Int64]()
+        if r.peek() == 125:
+            r.eat(125)
+            return
+        while True:
+            var key = r.read_string()
+            r.eat(58)
+            if key == "value":
+                self.value = r.read_number().i
+            elif key == "next":
+                if r.peek() == 110:
+                    r.read_null()
+                    self.next = Optional[Int64]()
+                else:
+                    var _o = Int64()
+                    _o.decode_from(r)
+                    self.next = Optional[Int64](_o^)
+            else:
+                r.skip_value()
+            var s = r.peek()
+            if s == 125:
+                r.eat(125)
+                return
+            if s != 44:
+                raise DecodeError(DecodeError.KIND_SYNTAX, r.position())
+            r.eat(44)
+            if r.peek() == 125:
+                raise DecodeError(DecodeError.KIND_SYNTAX, r.position())

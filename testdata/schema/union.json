@@ -1,0 +1,17 @@
+{
+  "title": "Pet",
+  "oneOf": [
+    {
+      "title": "Cat",
+      "type": "object",
+      "properties": { "lives": { "type": "integer" } },
+      "required": ["lives"]
+    },
+    {
+      "title": "Dog",
+      "type": "object",
+      "properties": { "breed": { "type": "string" } },
+      "required": ["breed"]
+    }
+  ]
+}

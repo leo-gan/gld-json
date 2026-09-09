@@ -1,0 +1,10 @@
+{
+  "title": "Keywords",
+  "type": "object",
+  "properties": {
+    "struct": { "type": "integer" },
+    "fn": { "type": "string" },
+    "var": { "type": "boolean" }
+  },
+  "required": ["struct", "fn", "var"]
+}
