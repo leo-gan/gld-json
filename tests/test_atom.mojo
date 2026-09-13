@@ -60,6 +60,15 @@ def test_int_valued_float() raises:
     assert_true(s == String("1.0") or s == String("1"))
 
 
+def test_double_close_to_zero() raises:
+    # JSONTestSuite y_number_double_close_to_zero — valid token, may underflow.
+    var text = "[-0.000000000000000000000000000000000000000000000000000000000000000000000000000001]"
+    var v = decode_value(text.as_bytes())
+    assert_true(v.is_array())
+    var x = v.at(0).as_float()
+    assert_true(x <= 0.0)
+
+
 def test_short_float() raises:
     var half = decode_value("0.5".as_bytes())
     assert_true(half.as_float() == 0.5)
