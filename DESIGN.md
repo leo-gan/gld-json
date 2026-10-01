@@ -8,7 +8,7 @@
 | **Status** | Draft (rev 3) |
 | **Target repo** | `/home/leo/PycharmProjects/GLD/gld-json` (greenfield standalone library; only a local `.env` as of 2026-09-09) |
 | **License** | MIT, Copyright (c) 2026 Leonid Ganeline |
-| **Recommended Mojo pin** | `mojo == 1.0.0` (stable, 2026-08-11) |
+| **Recommended Mojo pin** | `mojo == 1.1.0` (stable, 2026-09-17) |
 | **Spec targets** | [RFC 8259](https://www.rfc-editor.org/rfc/rfc8259.html) (JSON), [RFC 7464](https://www.rfc-editor.org/rfc/rfc7464.html) is **not** a target (that is JSON text sequences with RS). v1 streaming text is [JSON Lines / NDJSON](https://jsonlines.org/). [RFC 6901](https://www.rfc-editor.org/rfc/rfc6901.html) (JSON Pointer), [RFC 6902](https://www.rfc-editor.org/rfc/rfc6902.html) (JSON Patch), [RFC 7396](https://www.rfc-editor.org/rfc/rfc7396.html) (JSON Merge Patch). JSON Schema **subset** listed under Schema (not the full 2020-12 vocabulary). |
 
 ---
