@@ -5,7 +5,7 @@ If you have not used JSON as a wire format before, start with
 pretty-print, JSON Lines, Pointer, and Patch.
 [Techniques](techniques.md) explains how encode and decode are implemented.
 
-## Install Mojo 1.0.0
+## Install Mojo 1.1.0
 
 ```bash
 git clone https://github.com/leo-gan/gld-json.git
