@@ -1,5 +1,7 @@
 # mojo-json
 
+[Serialization](https://leo-gan.github.io/serialization/) is the hub for the theory, the history, and the benchmarks.
+
 A from-scratch [JSON](https://en.wikipedia.org/wiki/JSON) implementation for
 [Mojo](https://mojolang.org/). The runtime and the code generator are written
 in Mojo. They do not wrap, link, or vendor simdjson, yyjson, or any other C,
